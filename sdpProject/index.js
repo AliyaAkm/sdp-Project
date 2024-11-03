@@ -98,6 +98,50 @@ class RecipeManager {
     }
 }
 
+// Decorator Pattern for Recipe Variations
+class Recipe {
+    constructor(name, ingredients) {
+        this.name = name;
+        this.ingredients = ingredients;
+    }
+
+    getName() {
+        return this.name;
+    }
+
+    getIngredients() {
+        return this.ingredients;
+    }
+}
+
+class SpicyDecorator {
+    constructor(recipe) {
+        this.recipe = recipe;
+    }
+
+    getName() {
+        return `${this.recipe.getName()} (Spicy)`;
+    }
+
+    getIngredients() {
+        return [...this.recipe.getIngredients(), 'Chili Peppers'];
+    }
+}
+
+class VeganDecorator {
+    constructor(recipe) {
+        this.recipe = recipe;
+    }
+
+    getName() {
+        return `${this.recipe.getName()} (Vegan)`;
+    }
+
+    getIngredients() {
+        return [...this.recipe.getIngredients(), 'Tofu'];
+    }
+}
+
 const RecipeList = defineComponent({
     data() {
         return {
@@ -139,6 +183,7 @@ const RecipeList = defineComponent({
                 const ingredients = this.newRecipeIngredients.split(',').map(ing => ing.trim());
 
                 if (this.isEditing && this.recipeToEdit) {
+                    // Update existing recipe
                     this.recipeToEdit.name = this.newRecipeName;
                     this.recipeToEdit.ingredients = ingredients;
                     this.isEditing = false;
@@ -169,6 +214,16 @@ const RecipeList = defineComponent({
         },
         notifyUser(message) {
             this.notifications.push(message); // Push notification to local notifications array
+        },
+        addSpicyVariation(recipe) {
+            const spicyRecipe = new SpicyDecorator(new Recipe(recipe.name, recipe.ingredients));
+            this.recipeManager.addRecipe(spicyRecipe.getName(), spicyRecipe.getIngredients());
+            this.saveRecipes(); // Save to local storage after adding the spicy variation
+        },
+        addVeganVariation(recipe) {
+            const veganRecipe = new VeganDecorator(new Recipe(recipe.name, recipe.ingredients));
+            this.recipeManager.addRecipe(veganRecipe.getName(), veganRecipe.getIngredients());
+            this.saveRecipes(); // Save to local storage after adding the vegan variation
         }
     },
     mounted() {
@@ -209,6 +264,8 @@ const RecipeList = defineComponent({
                     <p class="card-text"><strong>Ingredients:</strong> {{ recipe.ingredients.join(", ") }}</p>
                     <button class="btn btn-warning btn-sm" @click="editRecipe(recipe)">Edit</button>
                     <button class="btn btn-danger btn-sm" @click="deleteRecipe(recipe)">Delete</button>
+                    <button class="btn btn-success btn-sm mt-2" @click="addSpicyVariation(recipe)">Add Spicy Variation</button>
+                    <button class="btn btn-success btn-sm mt-2" @click="addVeganVariation(recipe)">Add Vegan Variation</button>
                   </div>
                 </div>
               </div>
@@ -228,6 +285,7 @@ const RecipeList = defineComponent({
     `
 });
 
+// Create and mount the Vue application
 createApp({
     components: {
         RecipeList
