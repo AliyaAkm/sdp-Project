@@ -1,0 +1,42 @@
+/* Custom CSS */
+body {
+    background-image: url('bg.jpg'); /* Adjust the path if the image is in a folder */
+    background-size: cover; /* Cover the entire screen */
+    background-position: center; /* Center the image */
+    background-repeat: no-repeat; /* Prevent the image from repeating */
+    color: black; /* Change text color to white for better visibility */
+}
+
+/* Optional: Adjust card background to be more visible against the background */
+.card {
+    background-color: rgba(255, 255, 255, 0.8); /* Light background with transparency */
+}
+
+.navbar {
+    margin-bottom: 1.5rem;
+}
+
+.container h2,
+.container h3,
+.container h4 {
+    color: #343a40;
+}
+
+#recipe-list .card {
+    margin-bottom: 1.5rem;
+}
+
+#notification-list .list-group-item {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+}
+
+footer {
+    position: relative;
+    bottom: 0;
+    width: 100%;
+}
+
+.card {
+    color: black;
+}
