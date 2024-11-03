@@ -17,12 +17,17 @@ class NotificationService {
 
 // Observer for displaying notifications
 class NotificationDisplay {
+    constructor(notificationsArray) {
+        this.notificationsArray = notificationsArray; // link to the notifications array
+    }
+
     update(message) {
         console.log('Notification:', message);
-        // Displaying notification in the console (can be expanded for more UI features)
+        this.notificationsArray.push(message); // add message to the notifications array
     }
 }
 
+// Sort Strategies
 class NameSortStrategy {
     sort(recipes) {
         return recipes.sort((a, b) => a.name.localeCompare(b.name));
@@ -35,23 +40,79 @@ class IngredientCountSortStrategy {
     }
 }
 
+// Composite Pattern: Ingredient and CompositeIngredient
+class Ingredient {
+    constructor(name) {
+        this.name = name;
+    }
+}
+
+class CompositeIngredient {
+    constructor(name) {
+        this.name = name;
+        this.ingredients = [];
+    }
+
+    add(ingredient) {
+        this.ingredients.push(ingredient);
+    }
+
+    getIngredients() {
+        return this.ingredients;
+    }
+}
+
+// Facade Pattern: RecipeManager
+class RecipeManager {
+    constructor() {
+        this.recipes = [];
+        this.notificationService = new NotificationService();
+        this.sortStrategy = new NameSortStrategy();
+    }
+
+    addRecipe(name, ingredients) {
+        const newRecipe = {
+            id: Date.now(),
+            name: name,
+            ingredients: ingredients
+        };
+        this.recipes.push(newRecipe);
+        this.notificationService.notify(`Recipe "${name}" has been added.`);
+    }
+
+    deleteRecipe(recipe) {
+        this.recipes = this.recipes.filter(r => r.id !== recipe.id);
+        this.notificationService.notify(`Recipe "${recipe.name}" has been deleted.`);
+    }
+
+    getSortedRecipes() {
+        return this.sortStrategy.sort(this.recipes);
+    }
+
+    changeSortStrategy(strategy) {
+        if (strategy === 'name') {
+            this.sortStrategy = new NameSortStrategy();
+        } else if (strategy === 'ingredientCount') {
+            this.sortStrategy = new IngredientCountSortStrategy();
+        }
+    }
+}
+
 const RecipeList = defineComponent({
     data() {
         return {
-            recipes: [],
+            recipeManager: new RecipeManager(),
             newRecipeName: '',
             newRecipeIngredients: '',
             filterIngredient: '',
             notifications: [],
             isEditing: false,
             recipeToEdit: null,
-            notificationService: new NotificationService(),
-            sortStrategy: new NameSortStrategy(), // Default strategy
         };
     },
     computed: {
         filteredAndSortedRecipes() {
-            let filteredRecipes = this.recipes;
+            let filteredRecipes = this.recipeManager.getSortedRecipes();
 
             if (this.filterIngredient) {
                 const ingredientLower = this.filterIngredient.toLowerCase();
@@ -60,22 +121,18 @@ const RecipeList = defineComponent({
                 );
             }
 
-            return this.sortStrategy.sort(filteredRecipes);
+            return filteredRecipes;
         }
     },
     methods: {
         loadRecipes() {
             const storedRecipes = localStorage.getItem('recipes');
             if (storedRecipes) {
-                this.recipes = JSON.parse(storedRecipes);
+                this.recipeManager.recipes = JSON.parse(storedRecipes);
             }
         },
         saveRecipes() {
-            localStorage.setItem('recipes', JSON.stringify(this.recipes));
-        },
-        notifyUser(message) {
-            this.notifications.push(message); // Add notification to the list
-            this.notificationService.notify(message); // Notify observers
+            localStorage.setItem('recipes', JSON.stringify(this.recipeManager.recipes));
         },
         addOrUpdateRecipe() {
             if (this.newRecipeName && this.newRecipeIngredients) {
@@ -88,25 +145,18 @@ const RecipeList = defineComponent({
                     this.recipeToEdit = null;
                     this.notifyUser(`Recipe "${this.newRecipeName}" has been updated.`);
                 } else {
-                    const newRecipe = {
-                        id: Date.now(),
-                        name: this.newRecipeName,
-                        ingredients: ingredients
-                    };
-                    this.recipes.push(newRecipe);
-                    this.notifyUser(`Recipe "${this.newRecipeName}" has been added.`);
+                    this.recipeManager.addRecipe(this.newRecipeName, ingredients);
                 }
                 this.saveRecipes();
                 this.newRecipeName = '';
                 this.newRecipeIngredients = '';
             } else {
-                this.notifyUser('Please enter a recipe name and ingredients.'); // Notify instead of alert
+                this.notifyUser('Please enter a recipe name and ingredients.');
             }
         },
         deleteRecipe(recipe) {
-            this.recipes = this.recipes.filter(r => r.id !== recipe.id);
+            this.recipeManager.deleteRecipe(recipe);
             this.saveRecipes();
-            this.notifyUser(`Recipe "${recipe.name}" has been deleted.`);
         },
         editRecipe(recipe) {
             this.newRecipeName = recipe.name;
@@ -115,23 +165,21 @@ const RecipeList = defineComponent({
             this.recipeToEdit = recipe;
         },
         changeSortStrategy(strategy) {
-            if (strategy === 'name') {
-                this.sortStrategy = new NameSortStrategy();
-            } else if (strategy === 'ingredientCount') {
-                this.sortStrategy = new IngredientCountSortStrategy();
-            }
+            this.recipeManager.changeSortStrategy(strategy);
+        },
+        notifyUser(message) {
+            this.notifications.push(message); // Push notification to local notifications array
         }
     },
     mounted() {
         this.loadRecipes();
 
         // Register a notification display observer
-        const notificationDisplay = new NotificationDisplay();
-        this.notificationService.subscribe(notificationDisplay);
+        const notificationDisplay = new NotificationDisplay(this.notifications); // Pass the notifications array
+        this.recipeManager.notificationService.subscribe(notificationDisplay);
     },
     template: `
       <div>
-        <!-- Add / Edit Recipe Form -->
         <div class="mb-5">
           <h4>{{ isEditing ? 'Edit Recipe' : 'Add a New Recipe' }}</h4>
           <input type="text" class="form-control mb-2" v-model="newRecipeName" placeholder="Recipe Name" />
@@ -139,7 +187,6 @@ const RecipeList = defineComponent({
           <button class="btn btn-primary" @click="addOrUpdateRecipe">{{ isEditing ? 'Update Recipe' : 'Add Recipe' }}</button>
         </div>
 
-        <!-- Filters and Sorting -->
         <div class="row">
           <div class="col-md-3">
             <h4>Filter Recipes</h4>
@@ -152,7 +199,6 @@ const RecipeList = defineComponent({
             </select>
           </div>
 
-          <!-- Recipes List -->
           <div class="col-md-9">
             <h2 class="mb-4">Recipes</h2>
             <div class="row">
@@ -170,7 +216,6 @@ const RecipeList = defineComponent({
           </div>
         </div>
 
-        <!-- Notifications Section -->
         <div class="mt-5">
           <h3>Notifications</h3>
           <ul class="list-group">
