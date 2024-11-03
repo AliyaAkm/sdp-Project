@@ -1,9 +1,17 @@
 const { createApp, defineComponent } = Vue;
 
-// Observer class for notifications
+// Singleton Pattern for NotificationService
 class NotificationService {
     constructor() {
+        if (NotificationService.instance) {
+            return NotificationService.instance;
+        }
         this.subscribers = [];
+        NotificationService.instance = this;
+    }
+
+    static getInstance() {
+        return NotificationService.instance || new NotificationService();
     }
 
     subscribe(subscriber) {
@@ -15,59 +23,29 @@ class NotificationService {
     }
 }
 
-// Observer for displaying notifications
-class NotificationDisplay {
-    constructor(notificationsArray) {
-        this.notificationsArray = notificationsArray; // link to the notifications array
-    }
-
-    update(message) {
-        console.log('Notification:', message);
-        this.notificationsArray.push(message); // add message to the notifications array
-    }
-}
-
-// Sort Strategies
-class NameSortStrategy {
-    sort(recipes) {
-        return recipes.sort((a, b) => a.name.localeCompare(b.name));
-    }
-}
-
-class IngredientCountSortStrategy {
-    sort(recipes) {
-        return recipes.sort((a, b) => a.ingredients.length - b.ingredients.length);
-    }
-}
-
-// Composite Pattern: Ingredient and CompositeIngredient
-class Ingredient {
-    constructor(name) {
-        this.name = name;
-    }
-}
-
-class CompositeIngredient {
-    constructor(name) {
-        this.name = name;
-        this.ingredients = [];
-    }
-
-    add(ingredient) {
-        this.ingredients.push(ingredient);
-    }
-
-    getIngredients() {
-        return this.ingredients;
-    }
-}
-
-// Facade Pattern: RecipeManager
+// Singleton Pattern for RecipeManager
 class RecipeManager {
     constructor() {
+        if (RecipeManager.instance) {
+            return RecipeManager.instance;
+        }
         this.recipes = [];
-        this.notificationService = new NotificationService();
-        this.sortStrategy = new NameSortStrategy();
+        this.notificationService = NotificationService.getInstance();
+        this.sortStrategy = this.getSortStrategy('name');
+        RecipeManager.instance = this;
+    }
+
+    static getInstance() {
+        return RecipeManager.instance || new RecipeManager();
+    }
+
+    getSortStrategy(strategy) {
+        if (strategy === 'name') {
+            return new NameSortStrategy();
+        } else if (strategy === 'ingredientCount') {
+            return new IngredientCountSortStrategy();
+        }
+        return new NameSortStrategy();
     }
 
     addRecipe(name, ingredients) {
@@ -90,11 +68,51 @@ class RecipeManager {
     }
 
     changeSortStrategy(strategy) {
-        if (strategy === 'name') {
-            this.sortStrategy = new NameSortStrategy();
-        } else if (strategy === 'ingredientCount') {
-            this.sortStrategy = new IngredientCountSortStrategy();
+        this.sortStrategy = this.getSortStrategy(strategy);
+    }
+}
+
+// Factory Method Pattern for creating recipe variations
+class RecipeFactory {
+    static createRecipe(type, name, ingredients) {
+        let recipe = new Recipe(name, ingredients);
+        if (type === 'spicy') {
+            recipe = new SpicyDecorator(recipe);
+        } else if (type === 'vegan') {
+            recipe = new VeganDecorator(recipe);
         }
+        return recipe;
+    }
+}
+
+// Observer for displaying notifications
+class NotificationDisplay {
+    constructor(notificationsArray) {
+        this.notificationsArray = notificationsArray;
+    }
+
+    update(message) {
+        this.notificationsArray.push(message);
+    }
+}
+
+// Sort Strategies
+class NameSortStrategy {
+    sort(recipes) {
+        return recipes.sort((a, b) => a.name.localeCompare(b.name));
+    }
+}
+
+class IngredientCountSortStrategy {
+    sort(recipes) {
+        return recipes.sort((a, b) => a.ingredients.length - b.ingredients.length);
+    }
+}
+
+// Composite Pattern: Ingredient and CompositeIngredient
+class Ingredient {
+    constructor(name) {
+        this.name = name;
     }
 }
 
@@ -145,7 +163,7 @@ class VeganDecorator {
 const RecipeList = defineComponent({
     data() {
         return {
-            recipeManager: new RecipeManager(),
+            recipeManager: RecipeManager.getInstance(),
             newRecipeName: '',
             newRecipeIngredients: '',
             filterIngredient: '',
@@ -183,7 +201,6 @@ const RecipeList = defineComponent({
                 const ingredients = this.newRecipeIngredients.split(',').map(ing => ing.trim());
 
                 if (this.isEditing && this.recipeToEdit) {
-                    // Update existing recipe
                     this.recipeToEdit.name = this.newRecipeName;
                     this.recipeToEdit.ingredients = ingredients;
                     this.isEditing = false;
@@ -213,76 +230,75 @@ const RecipeList = defineComponent({
             this.recipeManager.changeSortStrategy(strategy);
         },
         notifyUser(message) {
-            this.notifications.push(message); // Push notification to local notifications array
+            this.notifications.push(message);
         },
         addSpicyVariation(recipe) {
-            const spicyRecipe = new SpicyDecorator(new Recipe(recipe.name, recipe.ingredients));
+            const spicyRecipe = RecipeFactory.createRecipe('spicy', recipe.name, recipe.ingredients);
             this.recipeManager.addRecipe(spicyRecipe.getName(), spicyRecipe.getIngredients());
-            this.saveRecipes(); // Save to local storage after adding the spicy variation
+            this.saveRecipes();
         },
         addVeganVariation(recipe) {
-            const veganRecipe = new VeganDecorator(new Recipe(recipe.name, recipe.ingredients));
+            const veganRecipe = RecipeFactory.createRecipe('vegan', recipe.name, recipe.ingredients);
             this.recipeManager.addRecipe(veganRecipe.getName(), veganRecipe.getIngredients());
-            this.saveRecipes(); // Save to local storage after adding the vegan variation
+            this.saveRecipes();
         }
     },
     mounted() {
         this.loadRecipes();
 
-        // Register a notification display observer
-        const notificationDisplay = new NotificationDisplay(this.notifications); // Pass the notifications array
+        const notificationDisplay = new NotificationDisplay(this.notifications);
         this.recipeManager.notificationService.subscribe(notificationDisplay);
     },
     template: `
-      <div>
-        <div class="mb-5">
-          <h4>{{ isEditing ? 'Edit Recipe' : 'Add a New Recipe' }}</h4>
-          <input type="text" class="form-control mb-2" v-model="newRecipeName" placeholder="Recipe Name" />
-          <input type="text" class="form-control mb-2" v-model="newRecipeIngredients" placeholder="Ingredients (comma-separated)" />
-          <button class="btn btn-primary" @click="addOrUpdateRecipe">{{ isEditing ? 'Update Recipe' : 'Add Recipe' }}</button>
+    <div>
+      <div class="mb-5">
+        <h4>{{ isEditing ? 'Edit Recipe' : 'Add a New Recipe' }}</h4>
+        <input type="text" class="form-control mb-2" v-model="newRecipeName" placeholder="Recipe Name" />
+        <input type="text" class="form-control mb-2" v-model="newRecipeIngredients" placeholder="Ingredients (comma-separated)" />
+        <button class="btn btn-primary" @click="addOrUpdateRecipe">{{ isEditing ? 'Update Recipe' : 'Add Recipe' }}</button>
+      </div>
+  
+      <div class="row">
+        <div class="col-md-3">
+          <h4>Filter Recipes</h4>
+          <input type="text" class="form-control" v-model="filterIngredient" placeholder="Enter ingredient" />
+  
+          <h4 class="mt-4">Sort Recipes</h4>
+          <select class="form-control" @change="changeSortStrategy($event.target.value)">
+            <option value="name">By Name</option>
+            <option value="ingredientCount">By Ingredient Count</option>
+          </select>
         </div>
-
-        <div class="row">
-          <div class="col-md-3">
-            <h4>Filter Recipes</h4>
-            <input type="text" class="form-control" v-model="filterIngredient" placeholder="Enter ingredient" />
-
-            <h4 class="mt-4">Sort Recipes</h4>
-            <select class="form-control" @change="changeSortStrategy($event.target.value)">
-              <option value="name">By Name</option>
-              <option value="ingredientCount">By Ingredient Count</option>
-            </select>
-          </div>
-
-          <div class="col-md-9">
-            <h2 class="mb-4">Recipes</h2>
-            <div class="row">
-              <div class="col-md-4" v-for="recipe in filteredAndSortedRecipes" :key="recipe.id">
-                <div class="card mb-3">
-                  <div class="card-body">
-                    <h5 class="card-title">{{ recipe.name }}</h5>
-                    <p class="card-text"><strong>Ingredients:</strong> {{ recipe.ingredients.join(", ") }}</p>
-                    <button class="btn btn-warning btn-sm" @click="editRecipe(recipe)">Edit</button>
-                    <button class="btn btn-danger btn-sm" @click="deleteRecipe(recipe)">Delete</button>
-                    <button class="btn btn-success btn-sm mt-2" @click="addSpicyVariation(recipe)">Add Spicy Variation</button>
-                    <button class="btn btn-success btn-sm mt-2" @click="addVeganVariation(recipe)">Add Vegan Variation</button>
-                  </div>
+  
+        <div class="col-md-9">
+          <h2 class="mb-4">Recipes</h2>
+          <div class="row">
+            <div class="col-md-4" v-for="recipe in filteredAndSortedRecipes" :key="recipe.id">
+              <div class="card mb-3">
+                <div class="card-body">
+                  <h5 class="card-title">{{ recipe.name }}</h5>
+                  <p class="card-text"><strong>Ingredients:</strong> {{ recipe.ingredients.join(", ") }}</p>
+                  <button class="btn btn-warning btn-sm" @click="editRecipe(recipe)">Edit</button>
+                  <button class="btn btn-danger btn-sm" @click="deleteRecipe(recipe)">Delete</button>
+                  <button class="btn btn-success btn-sm mt-2" @click="addSpicyVariation(recipe)">Add Spicy Variation</button>
+                  <button class="btn btn-success btn-sm mt-2" @click="addVeganVariation(recipe)">Add Vegan Variation</button>
                 </div>
               </div>
             </div>
           </div>
         </div>
-
-        <div class="mt-5">
-          <h3>Notifications</h3>
-          <ul class="list-group">
-            <li class="list-group-item" v-for="(notification, index) in notifications" :key="index">
-              {{ notification }}
-            </li>
-          </ul>
-        </div>
       </div>
-    `
+  
+      <div class="mt-5">
+        <h3>Notifications</h3>
+        <ul class="list-group">
+          <li class="list-group-item" v-for="(notification, index) in notifications" :key="index">
+            {{ notification }}
+          </li>
+        </ul>
+      </div>
+    </div>
+  `
 });
 
 // Create and mount the Vue application

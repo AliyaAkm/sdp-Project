@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Profile - Recipe Sharing Platform</title>
+  <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="homestyle.css">
+  <style>
+    body {
+      background-image: url('bg.png');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      color: rgb(51, 46, 46);
+    }
+    .card {
+      background-color: rgba(255, 255, 255, 0.8);
+    }
+  </style>
+</head>
+<body>
+
+<div id="app">
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <a class="navbar-brand" href="home.html">Recipe Share</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav ml-auto">
+        <li class="nav-item"><a class="nav-link" href="home.html">Home</a></li>
+        <li class="nav-item"><a class="nav-link" href="recipes.html">Recipes</a></li>
+        <li class="nav-item"><a class="nav-link" href="profile.html">Profile</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="container mt-5">
+    <h2>User Profile</h2>
+    <profile-component></profile-component>
+  </div>
+</div>
+
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<script>
+  // Define the ProfileComponent
+  const ProfileComponent = {
+    data() {
+      return {
+        user: {
+          name: "John Doe",
+          email: "johndoe@example.com",
+          bio: "A passionate cook and food enthusiast."
+        },
+        isEditing: false,
+        updatedUser: { ...this.user }
+      };
+    },
+    methods: {
+      toggleEdit() {
+        this.isEditing = !this.isEditing;
+        if (!this.isEditing) {
+          this.user = { ...this.updatedUser }; // Update the user data
+        } else {
+          this.updatedUser = { ...this.user }; // Reset the updated data
+        }
+      }
+    },
+    template: `
+        <div class="card p-3">
+            <div class="card-body">
+                <h5 class="card-title">Profile Information</h5>
+                <div v-if="!isEditing">
+                    <p><strong>Name:</strong> {{ user.name }}</p>
+                    <p><strong>Email:</strong> {{ user.email }}</p>
+                    <p><strong>Bio:</strong> {{ user.bio }}</p>
+                    <button class="btn btn-warning" @click="toggleEdit">Edit Profile</button>
+                </div>
+                <div v-else>
+                    <input type="text" class="form-control mb-2" v-model="updatedUser.name" placeholder="Name" />
+                    <input type="email" class="form-control mb-2" v-model="updatedUser.email" placeholder="Email" />
+                    <textarea class="form-control mb-2" v-model="updatedUser.bio" placeholder="Bio"></textarea>
+                    <button class="btn btn-primary" @click="toggleEdit">Save Changes</button>
+                    <button class="btn btn-secondary" @click="toggleEdit">Cancel</button>
+                </div>
+            </div>
+        </div>
+    `
+  };
+
+  // Create and mount the Vue application
+  const app = Vue.createApp({});
+  app.component('profile-component', ProfileComponent);
+  app.mount('#app');
+</script>
+
+</body>
+</html>

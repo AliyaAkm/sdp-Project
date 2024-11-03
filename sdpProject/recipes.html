@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recipes - Recipe Sharing Platform</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="homestyle.css">
+    <style>
+        body {
+            background-image: url('bg.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            color: rgb(51, 46, 46);
+        }
+        .card {
+            background-color: rgba(255, 255, 255, 0.8);
+        }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <a class="navbar-brand" href="home.html">Recipe Share</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ml-auto">
+                <li class="nav-item"><a class="nav-link" href="home.html">Home</a></li>
+                <li class="nav-item"><a class="nav-link" href="recipes.html">Recipes</a></li>
+                <li class="nav-item"><a class="nav-link" href="profile.html">Profile</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container mt-5">
+        <h2>Available Recipes</h2>
+        <recipe-list></recipe-list>
+    </div>
+</div>
+
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<script>
+// Define the RecipeList component
+const RecipeList = {
+    data() {
+        return {
+            recipes: [
+                { id: 1, name: "Spaghetti Carbonara", ingredients: ["Spaghetti", "Eggs", "Parmesan cheese", "Pancetta", "Pepper"] },
+                { id: 2, name: "Chicken Curry", ingredients: ["Chicken", "Curry powder", "Coconut milk", "Onions", "Garlic"] },
+                { id: 3, name: "Vegetable Stir Fry", ingredients: ["Bell peppers", "Broccoli", "Carrots", "Soy sauce", "Garlic"] },
+                { id: 4, name: "Beef Tacos", ingredients: ["Ground beef", "Taco shells", "Lettuce", "Tomato", "Cheese"] },
+                { id: 5, name: "Caprese Salad", ingredients: ["Tomatoes", "Mozzarella", "Basil", "Olive oil", "Balsamic vinegar"] },
+                { id: 6, name: "Chocolate Chip Cookies", ingredients: ["Flour", "Butter", "Sugar", "Chocolate chips", "Eggs"] }
+            ]
+        };
+    },
+    template: `
+        <div class="row">
+            <div class="col-md-4" v-for="recipe in recipes" :key="recipe.id">
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ recipe.name }}</h5>
+                        <p class="card-text"><strong>Ingredients:</strong> {{ recipe.ingredients.join(", ") }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `
+};
+
+// Create and mount the Vue application
+const app = Vue.createApp({});
+app.component('recipe-list', RecipeList);
+app.mount('#app');
+</script>
+
+</body>
+</html>
